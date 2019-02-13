@@ -1,7 +1,7 @@
-Directions for use
-1. activate hashplot
+Basic test case
 1. python test_hash.py
 
+Full fledged test case: srepy.py
 
 Dev log
 1. chart s&d
@@ -16,3 +16,4 @@ Refining
 1. generate pattern list based on status
 1. x axis is combi of building and status. Hatch only the non-existing statuses
 1. config file
+

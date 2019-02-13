@@ -7,7 +7,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 import numpy as np
 
-def misc():
+def misc(): #original seaboard version
 	sns.set_style('whitegrid')
 	data1 = pd.DataFrame(np.random.rand(17, 3), columns=['A', 'B', 'C']).assign(Location=1)
 	data2 = pd.DataFrame(np.random.rand(17, 3) + 0.2, columns=['A', 'B', 'C']).assign(Location=2)
@@ -47,7 +47,7 @@ def misc():
 
 
 
-def main():
+def main(): #matplotlib version
 	input_folder =  "./input/"
 	cds_file = "calc_data_source.csv"
 	project_file = "proj.csv"
@@ -83,6 +83,7 @@ def main():
 		for i,bar in enumerate(supply_chart.patches):
 			bar.set_hatch(patterns[i])
 		plt.show()
+		break
 
 if __name__ == "__main__":
 	main()
