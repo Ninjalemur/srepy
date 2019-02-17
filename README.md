@@ -1,5 +1,8 @@
-Basic test case
-* python test_hash.py
+Basic test cases
+* test_hash_1.py
+* test_hash_2.py
+* test_hash_3.py
+* test_hash_4.py
 
 Assets:
 1. srepy.py: full test case
@@ -16,6 +19,7 @@ Dev log
 1. print assembly
 1. class printer. iterates over geo,region, group
 1. have run specific temp folder for individual pngs to stage before consolidating into each site's pdf pages (allows parallel runs of each geo if output pdfs are different)
+1. sphinx documentation
 
 
 Refining

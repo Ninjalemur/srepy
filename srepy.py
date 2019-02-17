@@ -2,9 +2,10 @@ import itertools
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-#import seaborn as sns
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
+import random
+import string
 import numpy as np
 
 class srepy_printer:
@@ -15,9 +16,12 @@ class srepy_printer:
 	arguments (construction):
 	cds_file: path to a cds file. requires fields x,y,z
 	pds_file: path to a project/pds file
+	geo (optional): optional string argument for geo to filter to. None means all geos will be printed
+	date_interval (optional): 3,6,12. Whether to display quarterly, 6-monthly, or annual intervals
+	temp_dir (optional): path to temp directory where chart files are staged before assembling to pdf. If left blank, random one is generated, allowing multiple instances to be run simultaneously
 	"""
 
-	def __init__(self,cds_data,pd_sdata,geo=None):
+	def __init__(self,cds_data,pd_sdata,geo=None,date_interval=3,temp_dir=None):
 		self.raw_cds = cds_data
 		self.raw_pds = pd_sdata
 
@@ -26,15 +30,22 @@ class srepy_printer:
 		else:
 			#filter cds and pds by geo
 			pass
+		if temp_dir == None:
+			self.temp_dir = "{}/".format(
+					''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(10))
+					)
+		else:
+			self.temp_dir=temp_dir
 
-	def print_plans(self,date_interval=3):
-		""" 
-		master routine that loops and prints all the plans
-		"""
 		if date_interval not in [3,6,12]:
 			print("invalid date_interval {}. only 3,6,12 are accepted".format(date_interval))
 			exit()
 		self.date_interval = date_interval
+
+	def print_plans(self):
+		""" 
+		master routine that loops and prints all the plans
+		"""
 		if self.sanity_checks() == True:
 			pass
 		else:
@@ -48,14 +59,41 @@ class srepy_printer:
 
 		de_ids = self.cds.Group.unique()
 		#open pdf file
+		c = canvas.Canvas("test.pdf")
 		for de_id in de_ids:
-			curr_supply = self.cds.loc[cds['Group'] == de_id]
+			curr_supply = self.cds.loc[self.cds['Group'] == de_id]
 
 			#parse data frame. sum to building status. filter to demand_id
 
 			# call each chart and write each chart to temp folder
+			sup = snd_chart(self.cds,self.temp_dir+"snd.png")
+			sup.print_chart()
+
+			cap_req = cap_req_chart(self.cds,self.temp_dir+"cap_req.png")
+			cap_req.print_chart()
+
+			suit_status = suit_status_chart(self.cds,self.temp_dir+"suit_status.png")
+			suit_status.print_chart()
+
+			sup_chart = snd_chart(self.cds,self.temp_dir+"snd.png")
+			sup_chart.print_chart()
+
+			pds = pds_chart(self.cds,self.temp_dir+"snd.png")
+			pds.print_chart()
 
 			# assemble charts on page. create next page
+			c.translate(inch,inch)
+			c.setFillColorRGB(1,0,1)
+			c.drawImage("foo.png", 10, 10, 50, 50)
+			c.drawImage("foo.png", 60, 60, 50, 50)
+
+			c.showPage() #ends page. everything after is new page
+
+			c.drawImage("foo.png", 10, 10, 50, 50)
+			c.drawImage("foo.png", 60, 60, 50, 50)
+
+			c.showPage()
+		c.save()
 
 		#save and close pdf file
 
@@ -63,7 +101,7 @@ class srepy_printer:
 		"""
 		gets the date backbone based on interval desired. checks latest A for feed_date
 		"""
-		max_actual_date = self.cds.loc[self.cds['Forecast_version'] == "A"]["Date"].max()
+		max_actual_date = self.raw_cds.loc[self.raw_cds['Forecast_version'] == "A"]["Date"].max()
 		date_backbone = self.quarters_range("2018-12-31")
 		self.date_backbone = date_backbone
 
@@ -108,12 +146,14 @@ class srepy_printer:
 class snd_chart:
 	""" 
 	generates the snd chart and writes it to temp_dir
-	args:
-	outouts:
+	args: 
+		data: data_frame of input data
+		output_file: path where output file should be saved
+	outouts: prints output_file to output file path
 	"""
-	def __init__(self):
+	def __init__(self,data,output_file):
 		pass
-	def generate_chart(self):
+	def print_chart(self):
 		""" 
 		main routine that does the data parsing and generates chart, and saves chart
 		"""
@@ -122,12 +162,14 @@ class snd_chart:
 class cap_req_chart:
 	""" 
 	generates the capacity required chart and writes it to temp_dir
-	args:
-	outouts:
+	args: 
+		data: data_frame of input data
+		output_file: path where output file should be saved
+	outouts: prints output_file to output file path
 	"""
-	def __init__(self):
+	def __init__(self,data,output_file):
 		pass
-	def generate_chart(self):
+	def print_chart(self):
 		""" 
 		main routine that does the data parsing and generates chart, and saves chart
 		"""
@@ -136,12 +178,14 @@ class cap_req_chart:
 class suit_status_chart:
 	""" 
 	generates the suit status chart and writes it to temp_dir
-	args:
-	outouts:
+	args: 
+		data: data_frame of input data
+		output_file: path where output file should be saved
+	outouts: prints output_file to output file path
 	"""
-	def __init__(self):
+	def __init__(self,data,output_file):
 		pass
-	def generate_chart(self):
+	def print_chart(self):
 		""" 
 		main routine that does the data parsing and generates chart, and saves chart
 		"""
@@ -149,13 +193,15 @@ class suit_status_chart:
 
 class pds_chart:
 	""" 
-	generates the suit status chart and writes it to temp_dir
-	args:
-	outouts:
+	generates the pds chart and writes it to temp_dir
+	args: 
+		data: data_frame of input data
+		output_file: path where output file should be saved
+	outouts: prints output_file to output file path
 	"""
-	def __init__(self):
+	def __init__(self,data,output_file):
 		pass
-	def generate_chart(self):
+	def print_chart(self):
 		""" 
 		main routine that does the data parsing and generates chart, and saves chart
 		"""
