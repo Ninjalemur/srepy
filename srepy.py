@@ -23,7 +23,7 @@ class srepy_printer:
 	temp_dir (optional): path to temp directory where chart files are staged before assembling to pdf. If left blank, random one is generated, allowing multiple instances to be run simultaneously
 	"""
 
-	def __init__(self,cds_data,pds_data,geo=None,date_interval=3,temp_dir=None,output_file="test.pdf"):
+	def __init__(self,cds_data,pds_data,geo=None,date_interval=12,num_intervals=10,temp_dir=None,output_file="test.pdf"):
 		self.raw_cds = cds_data
 		self.raw_pds = pds_data
 		self.output_file = output_file
@@ -45,6 +45,8 @@ class srepy_printer:
 			print("invalid date_interval {}. only 3,6,12 are accepted".format(date_interval))
 			exit()
 		self.date_interval = date_interval
+
+		self.num_intervals = num_intervals
 
 	def print_plans(self):
 		""" 
@@ -84,7 +86,7 @@ class srepy_printer:
 			#curr_supply = curr_supply.groupby(['Date', 'Suit','Status'])["Capacity"].apply(lambda x : x.astype(int).sum())
 
 			# call each chart and write each chart to temp folder
-			sup = snd_chart(curr_supply,self.temp_dir+"snd.png")
+			sup = snd_chart(curr_supply,self.temp_dir+"snd.png",x_ticks=self.date_backbone)
 			sup.print_chart()
 
 			cap_req = cap_req_chart(self.cds,self.temp_dir+"cap_req.png")
@@ -130,7 +132,7 @@ class srepy_printer:
 		date_backbone = self.quarters_range(max_actual_date)
 		self.date_backbone = date_backbone
 
-	def quarters_range(self,date_from, years_ahead=10):
+	def quarters_range(self,date_from):
 		"""
 		gets the quarters from date_from to date_to
 		date_to: string (YYYY-MM-DD) of date to count until
@@ -152,12 +154,15 @@ class srepy_printer:
 		except ValueError:
 			print("cannot extract year from start year {}".format(date_from))
 			exit()
-		for curr_year in range(start_year,start_year+years_ahead+1):
+
+		i=0
+		while len(result) < self.num_intervals:
+		#for curr_year in range(start_year,start_year+years_ahead+1):
 			for curr_mm_dd in mm_dd_suffixes:
-				curr_date = str(curr_year)+curr_mm_dd
+				curr_date = str(start_year+i)+curr_mm_dd
 				if curr_date >= date_from:
 					result.append(curr_date)
-
+			i+=1
 		return(result)
 	
 
@@ -176,29 +181,67 @@ class snd_chart:
 		output_file: path where output file should be saved
 	outouts: prints output_file to output file path
 	"""
-	def __init__(self,data,output_file,colours=["red","blue","green","yellow","purple","orange"]):
+	def __init__(self,data,output_file,x_ticks=None,colours=["red","blue","green","yellow","purple","orange"]):
 		self.data = data
 		self.output_file = output_file
+		self.colours = colours
+		self.x_ticks = x_ticks
 	def print_chart(self):
 		""" 
 		main routine that does the data parsing and generates chart, and saves chart
 		"""
 
+		#gets dates if not supplied. else use supplied dates
+		if self.x_ticks == None:
+			dates = self.data[["Date"]].drop_duplicates()
+			dates = dates.sort_values(by=['Date'],ascending=[True]).reset_index(drop=True)
+			dates = dates["Date"].tolist()
+		else:
+			dates = self.x_ticks
+			dates.sort()
+		
+		suits = self.data[["Suit"]].drop_duplicates()
+		suits = suits.sort_values(by=['Suit'],ascending=[True]).reset_index(drop=True)
+
 		suit_status = self.data[["Suit","Status"]].drop_duplicates()
-		suit_status = suit_status.sort_values(by=['Status', 'Suit'],ascending=[True,True])
+		suit_status = suit_status.sort_values(by=['Status', 'Suit'],ascending=[True,True]).reset_index(drop=True)
 
 		for index,row in suit_status.iterrows():
+			suit = row['Suit']
+			status = row['Status']
+
+			#get all date rows for this suit status combi
 			single_suit_status = self.data.loc[(self.data['Suit'] == row['Suit']) & (self.data['Status'] == row['Status'])]
-			print(single_suit_status)
-			exit()
-			#convert single suit status into 10 values of data, depending on capacity at each date
+
+			#get index number of suit within suit list
+			suit_no = suits[suits['Suit']==suit].index.values.astype(int)[0]
+
+			#get status pattern and colour
+			edgecolour = self.colours[suit_no]
+			if status == "Existing":
+				pattern = None
+				colour = self.colours[suit_no]
+			else:
+				pattern = "//"
+				colour = "white"
+
+			#convert single suit status into list of data, depending on capacity at each date
+			suit_capacity_over_time = []
+			for each_date in dates:
+				curr_date_capacity = single_suit_status.loc[(self.data['Date'] == each_date)]
+				curr_date_capacity = curr_date_capacity[["Capacity"]].sum()
+				curr_date_capacity = curr_date_capacity["Capacity"].tolist()
+				suit_capacity_over_time.append(curr_date_capacity)
+			suit_capacity_over_time = np.array(suit_capacity_over_time)
+
 
 			plt.bar(
-					range(len(self.date_backbone)), 
-					to_plot, 
-					color=colours[index],
+					range(len(dates)), 
+					suit_capacity_over_time, 
+					color=colour,
 					#linewidth=line_width,
-					edgecolor=colours[index],
+					edgecolor=edgecolour,
+					hatch = pattern
 					)
 			plt.show()
 			exit()
