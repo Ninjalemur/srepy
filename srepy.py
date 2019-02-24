@@ -23,18 +23,19 @@ class srepy_printer:
 	temp_dir (optional): path to temp directory where chart files are staged before assembling to pdf. If left blank, random one is generated, allowing multiple instances to be run simultaneously
 	"""
 
-	def __init__(self,cds_data,pd_sdata,geo=None,date_interval=3,temp_dir=None,output_file="test.pdf"):
+	def __init__(self,cds_data,pds_data,geo=None,date_interval=3,temp_dir=None,output_file="test.pdf"):
 		self.raw_cds = cds_data
-		self.raw_pds = pd_sdata
+		self.raw_pds = pds_data
 		self.output_file = output_file
 
 		if geo == None:
 			pass
 		else:
 			#filter cds and pds by geo
-			pass
+			self.raw_cds = self.raw_cds.loc[self.raw_cds['Geo'] == geo]
+			self.raw_pds = self.raw_pds.loc[self.raw_pds['Geo'] == geo]
 		if temp_dir == None:
-			self.temp_dir = "{}/".format(
+			self.temp_dir = "_temp_{}/".format(
 					''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(10))
 					)
 		else:
@@ -56,24 +57,34 @@ class srepy_printer:
 			exit()
 		
 		self.create_fresh_dir(self.temp_dir)
-		print("dirs ok")
-		exit()
 		
+		self.cds = self.raw_cds
+
+		#convert Status into Existing, Not Existing
+		self.cds['Status'] = np.where(self.cds['Status'] == "Existing", "Existing", "NotExisting")
+		
+		# get dates that are relevant to current chosen interval
 		self.get_date_backbone()
 		
 		#filter  cds data to date_backbone
-		self.cds = self.raw_cds[self.raw_cds["Date"].isin(self.date_backbone)]
+		self.cds = self.cds[self.cds["Date"].isin(self.date_backbone)]
 
+		self.supply = self.raw_cds[self.raw_cds["Suit"].notnull()]
+		self.demand = self.raw_cds[self.raw_cds["Consumption"].notnull()]
+	
 		de_ids = self.cds.Group.unique()
 		#open pdf file
 		c = canvas.Canvas(self.output_file)
 		for de_id in de_ids:
-			curr_supply = self.cds.loc[self.cds['Group'] == de_id]
+			#filter to current demand_id
+			curr_supply = self.supply.loc[self.cds['Group'] == de_id]
 
 			#parse data frame. sum to building status. filter to demand_id
+			curr_supply = curr_supply[['Date', 'Suit','Status','Capacity']]
+			#curr_supply = curr_supply.groupby(['Date', 'Suit','Status'])["Capacity"].apply(lambda x : x.astype(int).sum())
 
 			# call each chart and write each chart to temp folder
-			sup = snd_chart(self.cds,self.temp_dir+"snd.png")
+			sup = snd_chart(curr_supply,self.temp_dir+"snd.png")
 			sup.print_chart()
 
 			cap_req = cap_req_chart(self.cds,self.temp_dir+"cap_req.png")
@@ -165,13 +176,34 @@ class snd_chart:
 		output_file: path where output file should be saved
 	outouts: prints output_file to output file path
 	"""
-	def __init__(self,data,output_file):
-		pass
+	def __init__(self,data,output_file,colours=["red","blue","green","yellow","purple","orange"]):
+		self.data = data
+		self.output_file = output_file
 	def print_chart(self):
 		""" 
 		main routine that does the data parsing and generates chart, and saves chart
 		"""
-		pass
+
+		suit_status = self.data[["Suit","Status"]].drop_duplicates()
+		suit_status = suit_status.sort_values(by=['Status', 'Suit'],ascending=[True,True])
+
+		for index,row in suit_status.iterrows():
+			single_suit_status = self.data.loc[(self.data['Suit'] == row['Suit']) & (self.data['Status'] == row['Status'])]
+			print(single_suit_status)
+			exit()
+			#convert single suit status into 10 values of data, depending on capacity at each date
+
+			plt.bar(
+					range(len(self.date_backbone)), 
+					to_plot, 
+					color=colours[index],
+					#linewidth=line_width,
+					edgecolor=colours[index],
+					)
+			plt.show()
+			exit()
+
+
 
 class cap_req_chart:
 	""" 
@@ -234,7 +266,7 @@ def main():
 	cds = pd.read_csv(cds_path)
 	pds = pd.read_csv(cds_path)
 	
-	printer = srepy_printer(cds,pds)
+	printer = srepy_printer(cds,pds,geo="CE70")
 	printer.print_plans()
 
 
