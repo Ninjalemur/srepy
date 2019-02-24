@@ -7,6 +7,8 @@ from reportlab.lib.units import inch
 import random
 import string
 import numpy as np
+import shutil
+import os
 
 class srepy_printer:
 	""" 
@@ -21,9 +23,10 @@ class srepy_printer:
 	temp_dir (optional): path to temp directory where chart files are staged before assembling to pdf. If left blank, random one is generated, allowing multiple instances to be run simultaneously
 	"""
 
-	def __init__(self,cds_data,pd_sdata,geo=None,date_interval=3,temp_dir=None):
+	def __init__(self,cds_data,pd_sdata,geo=None,date_interval=3,temp_dir=None,output_file="test.pdf"):
 		self.raw_cds = cds_data
 		self.raw_pds = pd_sdata
+		self.output_file = output_file
 
 		if geo == None:
 			pass
@@ -52,6 +55,10 @@ class srepy_printer:
 			print("Pre-run check failed. Please clean data before continuing")
 			exit()
 		
+		self.create_fresh_dir(self.temp_dir)
+		print("dirs ok")
+		exit()
+		
 		self.get_date_backbone()
 		
 		#filter  cds data to date_backbone
@@ -59,7 +66,7 @@ class srepy_printer:
 
 		de_ids = self.cds.Group.unique()
 		#open pdf file
-		c = canvas.Canvas("test.pdf")
+		c = canvas.Canvas(self.output_file)
 		for de_id in de_ids:
 			curr_supply = self.cds.loc[self.cds['Group'] == de_id]
 
@@ -94,15 +101,22 @@ class srepy_printer:
 
 			c.showPage()
 		c.save()
+		
 
 		#save and close pdf file
+		shutil.rmtree(self.temp_dir)
+	def create_fresh_dir(self,target_dir):
+		if os.path.exists(target_dir):
+			shutil.rmtree(target_dir)
+		else:
+			os.mkdir(target_dir)	
 
 	def get_date_backbone(self):
 		"""
 		gets the date backbone based on interval desired. checks latest A for feed_date
 		"""
 		max_actual_date = self.raw_cds.loc[self.raw_cds['Forecast_version'] == "A"]["Date"].max()
-		date_backbone = self.quarters_range("2018-12-31")
+		date_backbone = self.quarters_range(max_actual_date)
 		self.date_backbone = date_backbone
 
 	def quarters_range(self,date_from, years_ahead=10):

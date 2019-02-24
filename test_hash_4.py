@@ -18,17 +18,24 @@ with sns.axes_style("white"):
     sns.set_context("talk")
     
     # plot details
-    bar_width = 0.35
-    epsilon = .015
-    line_width = 1
+    bar_width = 0.25
+    epsilon = 0
+    #epsilon = .045
+    line_width = 0.8
     opacity = 0.7
     pos_bar_positions = np.arange(len(pos_mut_pcts))
-    neg_bar_positions = pos_bar_positions + bar_width
+    neg_bar_positions = pos_bar_positions + bar_width * 1.1
+    #print("show1")
+    #plt.show()
 
     # make bar plots
     hpv_pos_mut_bar = plt.bar(pos_bar_positions, pos_mut_pcts, bar_width,
 			      color='#ED0020',
+			      linewidth=line_width,
+			      edgecolor='#ED0020',
 			      label='HPV+ Mutations')
+    #print("show2")
+    #plt.show()
     hpv_pos_cna_bar = plt.bar(pos_bar_positions, pos_cna_pcts, bar_width-epsilon,
 			      bottom=pos_mut_pcts,
 			      alpha=opacity,
@@ -37,6 +44,8 @@ with sns.axes_style("white"):
 			      linewidth=line_width,
 			      hatch='//',
 			      label='HPV+ CNA')
+    #print("show3")
+    #plt.show()
     hpv_pos_both_bar = plt.bar(pos_bar_positions, pos_both_pcts, bar_width-epsilon,
 			       bottom=pos_cna_pcts+pos_mut_pcts,
 			       alpha=opacity,
@@ -45,9 +54,15 @@ with sns.axes_style("white"):
 			       linewidth=line_width,
 			       hatch='0',
 			       label='HPV+ Both')
+    #print("show4")
+    #plt.show()
     hpv_neg_mut_bar = plt.bar(neg_bar_positions, neg_mut_pcts, bar_width,
 			      color='#0000DD',
+			      edgecolor='#0000DD',
+			      linewidth=line_width,
 			      label='HPV- Mutations')
+    #print("show5")
+    #plt.show()
     hpv_neg_cna_bar = plt.bar(neg_bar_positions, neg_cna_pcts, bar_width-epsilon,
 			      bottom=neg_mut_pcts,
 			      color="white",
@@ -56,6 +71,8 @@ with sns.axes_style("white"):
 			      ecolor="#0000DD",
 			      linewidth=line_width,
 			      label='HPV- CNA')
+    #print("show6")
+    #plt.show()
     hpv_neg_both_bar = plt.bar(neg_bar_positions, neg_both_pcts, bar_width-epsilon,
 			       bottom=neg_cna_pcts+neg_mut_pcts,
 			       color="white",
@@ -64,12 +81,16 @@ with sns.axes_style("white"):
 			       ecolor="#0000DD",
 			       linewidth=line_width,
 			       label='HPV- Both')
+    #print("show7")
+    #plt.show()
     plt.xticks(neg_bar_positions, genes, rotation=45)
     plt.ylabel('Percentage of Samples')
     #plt.legend(loc='best')
     #sns.despine()
     plt.legend(bbox_to_anchor=(1.1, 1.05))  
     sns.despine()  
-    plt.show()
+    #print("show8")
+    #plt.show()
+    plt.savefig("test_4.png")
 
 
