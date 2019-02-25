@@ -205,7 +205,7 @@ class snd_chart:
 
 		suit_status = self.data[["Suit","Status"]].drop_duplicates()
 		suit_status = suit_status.sort_values(by=['Status', 'Suit'],ascending=[True,True]).reset_index(drop=True)
-
+		cumulative_capacity = np.zeros(len(dates),dtype=np.int16)
 		for index,row in suit_status.iterrows():
 			suit = row['Suit']
 			status = row['Status']
@@ -222,7 +222,7 @@ class snd_chart:
 				pattern = None
 				colour = self.colours[suit_no]
 			else:
-				pattern = "//"
+				pattern = "x"
 				colour = "white"
 
 			#convert single suit status into list of data, depending on capacity at each date
@@ -238,13 +238,15 @@ class snd_chart:
 			plt.bar(
 					range(len(dates)), 
 					suit_capacity_over_time, 
+					bottom=cumulative_capacity,
 					color=colour,
 					#linewidth=line_width,
 					edgecolor=edgecolour,
 					hatch = pattern
 					)
-			plt.show()
-			exit()
+			cumulative_capacity = cumulative_capacity + suit_capacity_over_time
+		plt.show()
+		exit()
 
 
 
@@ -315,5 +317,6 @@ def main():
 
 
 if __name__ == "__main__":
+	print("commence routine")
 	main()
 
