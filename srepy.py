@@ -59,6 +59,8 @@ class srepy_printer:
 			exit()
 		
 		self.create_fresh_dir(self.temp_dir)
+		#print("{} created".format(self.temp_dir))
+		#exit()
 		
 		self.cds = self.raw_cds
 
@@ -76,8 +78,8 @@ class srepy_printer:
 	
 		de_ids = self.cds.Group.unique()
 		#open pdf file
-		c = canvas.Canvas(self.output_file)
-		for de_id in de_ids:
+		c = canvas.Canvas(self.output_file,pagesize=(841.89,595.27))
+		for i,de_id in enumerate(de_ids):
 			#filter to current demand_id
 			curr_supply = self.supply.loc[self.cds['Group'] == de_id]
 
@@ -86,31 +88,31 @@ class srepy_printer:
 			#curr_supply = curr_supply.groupby(['Date', 'Suit','Status'])["Capacity"].apply(lambda x : x.astype(int).sum())
 
 			# call each chart and write each chart to temp folder
-			sup = snd_chart(curr_supply,self.temp_dir+"snd.png",x_ticks=self.date_backbone)
+			snd_output_file = self.temp_dir+"snd_{}.png".format(i)
+			sup = snd_chart(curr_supply,snd_output_file,x_ticks=self.date_backbone)
 			sup.print_chart()
-
-			cap_req = cap_req_chart(self.cds,self.temp_dir+"cap_req.png")
+			
+			cap_req_output_file = self.temp_dir+"cap_req_{}.png".format(i)
+			cap_req = cap_req_chart(self.cds,cap_req_output_file)
 			cap_req.print_chart()
 
-			suit_status = suit_status_chart(self.cds,self.temp_dir+"suit_status.png")
+			suit_status_output_file = self.temp_dir+"suit_status_{}.png".format(i)
+			suit_status = suit_status_chart(self.cds,suit_status_output_file)
 			suit_status.print_chart()
 
-			sup_chart = snd_chart(self.cds,self.temp_dir+"snd.png")
-			sup_chart.print_chart()
-
-			pds = pds_chart(self.cds,self.temp_dir+"snd.png")
+			pds_output_file = self.temp_dir+"pds_{}.png".format(i)
+			pds = pds_chart(self.cds,pds_output_file)
 			pds.print_chart()
 
 			# assemble charts on page. create next page
 			c.translate(inch,inch)
 			c.setFillColorRGB(1,0,1)
-			c.drawImage("foo.png", 10, 10, 50, 50)
-			c.drawImage("foo.png", 60, 60, 50, 50)
+			c.drawImage(snd_output_file, -40, 100,width=None,height=None)
 
 			c.showPage() #ends page. everything after is new page
 
-			c.drawImage("foo.png", 10, 10, 50, 50)
-			c.drawImage("foo.png", 60, 60, 50, 50)
+			c.drawImage("foo.png", 0, 0,width=None,height=None)
+			#c.drawImage("foo.png", 60, 60, 50, 50)
 
 			c.showPage()
 		c.save()
@@ -118,6 +120,7 @@ class srepy_printer:
 
 		#save and close pdf file
 		shutil.rmtree(self.temp_dir)
+
 	def create_fresh_dir(self,target_dir):
 		if os.path.exists(target_dir):
 			shutil.rmtree(target_dir)
@@ -181,11 +184,19 @@ class snd_chart:
 		output_file: path where output file should be saved
 	outouts: prints output_file to output file path
 	"""
-	def __init__(self,data,output_file,x_ticks=None,colours=["red","blue","green","yellow","purple","orange"]):
+	def __init__(
+			self,
+			data,
+			output_file,
+			x_ticks=None,
+			colours=["red","blue","green","yellow","purple","orange"],
+			figsize=(80,40)
+			):
 		self.data = data
 		self.output_file = output_file
 		self.colours = colours
 		self.x_ticks = x_ticks
+		self.figsize =  figsize
 	def print_chart(self):
 		""" 
 		main routine that does the data parsing and generates chart, and saves chart
@@ -205,7 +216,11 @@ class snd_chart:
 
 		suit_status = self.data[["Suit","Status"]].drop_duplicates()
 		suit_status = suit_status.sort_values(by=['Status', 'Suit'],ascending=[True,True]).reset_index(drop=True)
+
 		cumulative_capacity = np.zeros(len(dates),dtype=np.int16)
+		
+		#f = plt.figure(figsize=self.figsize)
+		#ax = f.add_subplot(111)
 		for index,row in suit_status.iterrows():
 			suit = row['Suit']
 			status = row['Status']
@@ -236,6 +251,7 @@ class snd_chart:
 
 
 			plt.bar(
+			#ax.bar(
 					range(len(dates)), 
 					suit_capacity_over_time, 
 					bottom=cumulative_capacity,
@@ -245,8 +261,10 @@ class snd_chart:
 					hatch = pattern
 					)
 			cumulative_capacity = cumulative_capacity + suit_capacity_over_time
-		plt.show()
-		exit()
+		plt.savefig(self.output_file)
+		#f.savefig(self.output_file)
+		#plt.show()
+		plt.close()
 
 
 
@@ -311,7 +329,7 @@ def main():
 	cds = pd.read_csv(cds_path)
 	pds = pd.read_csv(cds_path)
 	
-	printer = srepy_printer(cds,pds,geo="CE70")
+	printer = srepy_printer(cds,pds,geo="CE70",output_file= "./output/test1.pdf")
 	printer.print_plans()
 
 
